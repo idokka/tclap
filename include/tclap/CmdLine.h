@@ -183,6 +183,11 @@ private:
 		 */
 		bool _helpAndVersion;
 
+		/**
+		 * Whether or not to ignore unmatched args.
+		 */
+		bool _ignoreUnmatched;
+
 	public:
 
 		/**
@@ -240,6 +245,13 @@ private:
 		 * \param argv - Array of arguments.
 		 */
 		void parse(int argc, const char * const * argv);
+
+		/**
+		* Parses the command line.
+		* \param argc - Number of arguments.
+		* \param argv - Array of arguments.
+		*/
+		void parse(int argc, const wchar_t * const * argv);
 
 		/**
 		 * Parses the command line.
@@ -313,6 +325,13 @@ private:
 		 */
 		void reset();
 
+		/**
+		 * Allows unmatched args to be ignored. By default false.
+		 * 
+		 * @param ignore If true the cmdline will ignore any unmatched args
+		 * and if false it will behave as normal.
+		 */
+		void ignoreUnmatched(const bool ignore);
 };
 
 
@@ -337,7 +356,8 @@ inline CmdLine::CmdLine(const std::string& m,
   _output(0),
   _handleExceptions(true),
   _userSetOutput(false),
-  _helpAndVersion(help)
+  _helpAndVersion(help),
+  _ignoreUnmatched(false)
 {
 	_constructor();
 }
@@ -441,6 +461,23 @@ inline void CmdLine::parse(int argc, const char * const * argv)
 		parse(args);
 }
 
+inline void CmdLine::parse(int argc, const wchar_t * const * argv)
+{
+	// this step is necessary so that we have easy access to
+	// mutable strings.
+	char buf[2000];
+	std::vector<std::string> args;
+	for (int i = 0; i < argc; i++)
+	{
+		size_t converted = 0;
+		memset(buf, 0, sizeof(buf));
+		wcstombs_s(&converted, buf, sizeof(buf), argv[i], sizeof(buf));
+		args.push_back(buf);
+	}
+
+	parse(args);
+}
+
 inline void CmdLine::parse(std::vector<std::string>& args)
 {
 	bool shouldExit = false;
@@ -470,7 +507,7 @@ inline void CmdLine::parse(std::vector<std::string>& args)
 			if ( !matched && _emptyCombined( args[i] ) )
 				matched = true;
 
-			if ( !matched && !Arg::ignoreRest() )
+			if ( !matched && !Arg::ignoreRest() && !_ignoreUnmatched)
 				throw(CmdLineParseException("Couldn't find match "
 				                            "for argument",
 				                            args[i]));
@@ -621,6 +658,11 @@ inline void CmdLine::reset()
 		(*it)->reset();
 	
 	_progName.clear();
+}
+
+inline void CmdLine::ignoreUnmatched(const bool ignore)
+{
+	_ignoreUnmatched = ignore;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -405,6 +405,22 @@ typedef std::vector<Arg*>::iterator ArgVectorIterator;
  */
 typedef std::list<Visitor*>::iterator VisitorListIterator;
 
+inline std::istringstream &operator >> (std::istringstream &stream, std::wstring &value)
+{
+	std::string str;
+	stream >> str;
+
+	size_t buf_len = str.size() + 1;
+	wchar_t *buf = new wchar_t[buf_len];
+	size_t converted = 0;
+	wmemset(buf, 0, buf_len);
+	mbstowcs_s(&converted, buf, buf_len, str.data(), str.size());
+	value.assign(buf, buf + converted);
+	delete[] buf;
+
+	return stream;
+}
+
 /*
  * Extract a value of type T from it's string representation contained
  * in strVal. The ValueLike parameter used to select the correct
